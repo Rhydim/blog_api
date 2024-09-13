@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery
+  template:
+    metadata:
+      labels:
+        app: celery
+    spec:
+      containers:
+      - name: celery-worker
+        image: rhydimwiz/celery-worker:latest
+        command: ["celery", "-A", "celery_app.celery", "worker", "--loglevel=info"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: celery-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5555
+  selector:
+    app: celery
