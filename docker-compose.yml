@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  fastapi_app:
+    build: .
+    container_name: fastapi_app
+    command: uvicorn main:app --host 0.0.0.0 --port 8800
+    ports:
+      - "8800:8800"  # Expose FastAPI to the host machine
+    depends_on:
+      - redis
+      - elasticsearch
+    environment:
+      # Connection string to Redis inside Docker network
+      REDIS_URL: redis://redis:6379/0
+    networks:
+      - my-network
+
+  # Celery worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: celery_worker
+    depends_on:
+      - redis
+      - elasticsearch
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    networks:
+      - my-network
+
+  # Redis server
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - my-network
+
+  # Elasticsearch instance
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
